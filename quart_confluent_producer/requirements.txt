@@ -1,0 +1,5 @@
+faust
+aiologger==0.6.1
+quart==0.16.1
+numpy
+confluent-kafka==1.7.0

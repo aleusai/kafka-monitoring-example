@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+# MACOS 
+.DS_Store
+
+grafana.db
+
+*.bak
+
 # Distribution / packaging
 .Python
 build/

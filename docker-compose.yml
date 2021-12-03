@@ -1,0 +1,127 @@
+version: "3"
+services:
+
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.30.3
+    ports:
+      - 9000:9090
+    volumes:
+      - ./prometheus/prometheus_config:/etc/prometheus
+    command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana:/var/lib/grafana
+      - ./grafana/dashboards:/usr/share/grafana/conf/provisioning/dashboards
+      - ./grafana/datasources:/usr/share/grafana/conf/provisioning/datasources
+
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_JMX_HOSTNAME: zookeeper  
+      KAFKA_JMX_PORT: 39999
+    ports:
+      - 22181:2181
+      - 39999:39999
+
+  kafka_broker:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka_broker
+    container_name: kafka_broker
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - 49999:49999
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_broker:29092,PLAINTEXT_HOST://:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_JMX_HOSTNAME: kafka_broker
+      KAFKA_JMX_PORT: 49999
+
+  faust_consumer:
+    container_name: faust_consumer
+    environment:
+      BROKER_HOST_NAME: kafka_broker
+      BROKER_HOST_PORT: 29092
+    build:
+      context: .
+      dockerfile: faust_consumer/Dockerfile
+    depends_on: 
+      - kafka_broker
+    ports: 
+    - 6066:6066
+    volumes:
+      - ./faust_consumer/supervisor:/etc/supervisor/
+
+  faust_producer:
+    container_name: faust_producer
+    environment:
+      BROKER_HOST_NAME: kafka_broker
+      BROKER_HOST_PORT: 29092
+    build:
+      context: .
+      dockerfile: faust_producer/Dockerfile
+    depends_on: 
+      - kafka_broker
+    ports: 
+    - 6067:6066
+    volumes:
+      - ./faust_producer/supervisor:/etc/supervisor/
+
+  quart_producer:
+    container_name: quart_producer
+    environment:
+      BROKER_HOST_NAME: kafka_broker
+      BROKER_HOST_PORT: 29092
+    build:
+      context: .
+      dockerfile: quart_producer/Dockerfile
+    depends_on: 
+      - kafka_broker
+    ports: 
+    - 5000:5000
+    volumes:
+      - ./quart_producer/supervisor:/etc/supervisor/
+
+  quart_confluent_producer:
+    container_name: quart_confluent_producer
+    environment:
+      BROKER_HOST_NAME: kafka_broker
+      BROKER_HOST_PORT: 29092
+    build:
+      context: .
+      dockerfile: quart_confluent_producer/Dockerfile
+    depends_on: 
+      - kafka_broker
+    ports: 
+    - 5001:5000
+    volumes:
+      - ./quart_confluent_producer/supervisor:/etc/supervisor/
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager 
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    restart: always
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    deploy:
+      mode: global

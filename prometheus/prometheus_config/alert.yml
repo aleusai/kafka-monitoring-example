@@ -1,0 +1,30 @@
+groups:
+  - name: rules
+    rules:
+    - alert: Node down
+      expr: up == 0
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        title: Node {{ $labels.host }} is down
+        description: Failed to scrape {{ $labels.job }} on {{ $labels.host }} for more than 3 minutes. Node seems down.
+
+    - alert: Calls rate lower than 20
+      expr: rate(calls_number{job="apps"}[5m]) < 2000
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        title: Calls rate at 5m lower than 20
+        description: Calls rate at 5m lower than 20
+
+    - alert: calls_number > 1000
+      expr: calls_number > 1000
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        title: calls_number > 1000
+        description: calls_number > 1000
+
