@@ -25,7 +25,7 @@ All the services are provisioned with docker-compose in docker containers.
 The python Faust library is used for the consumer: this allows the use on the consumer side 
 of a global table for the records aggregation, so that the consumer end can be scaled up to many workers/consumers.
 
-Faust also exposes an http endpoint to publich the Prometheus metrics, without the need e.g. for an extra Flask web framework.
+Faust also exposes an http endpoint to publish the Prometheus metrics, without the need e.g. for an extra Flask web framework.
 
 Three producers are built that use each different libraries/setups: 
 - a producer that uses Faust
